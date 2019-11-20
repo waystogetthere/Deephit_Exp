@@ -91,7 +91,6 @@ def get_random_hyperparameters(out_path):
 
     return new_parser  # outputs the dictionary of the randomly-chosen hyperparamters
 
-
 ##### MAIN SETTING
 OUT_ITERATION = 1
 RS_ITERATION = 20
@@ -109,57 +108,74 @@ seed = 1234
 
     EVAL_TIMES              = set specific evaluation time horizons at which the validatoin performance is maximized. 
     						  (This must be selected based on the dataset)
-
 '''
-if data_mode == 'SYNTHETIC':
-    (x_dim), (data, time, label), (mask1, mask2) = impt.import_dataset_SYNTHETIC(norm_mode='standard')
-    EVAL_TIMES = [12, 24, 36]
-elif data_mode == 'METABRIC':
-    (x_dim), (data, time, label), (mask1, mask2) = impt.import_dataset_METABRIC(norm_mode='standard')
-    EVAL_TIMES = [144, 288, 432]
-elif data_mode[0:3] == 'MZZ':
-    first_ = data_mode.find("_")
-    second_ = data_mode[first_+1:].find("_") + first_ +1
-    num_samples = data_mode[first_+1: second_]
-    num_features = data_mode[second_+1:]
-    (x_dim), (data, time, label), (mask1, mask2) = impt.import_mzz_SYNTHETIC(num_samples=num_samples, num_features = num_features, norm_mode='standard')
-    EVAL_TIMES = [50, 100, int(max(time))]
-else:
-    print('ERROR:  DATA_MODE NOT FOUND !!!')
-
-DATA = (data, time, label)
-MASK = (mask1, mask2)  # masks are required to calculate loss functions without for-loops.
-
-out_path = data_mode + '/results/'
-
-for itr in range(OUT_ITERATION):
-
-    if not os.path.exists(out_path + '/itr_' + str(itr) + '/'):
-        os.makedirs(out_path + '/itr_' + str(itr) + '/')
-
-    max_valid = 0.
-    max_valid_list = []
-    log_name = out_path + '/itr_' + str(itr) + '/hyperparameters_log.txt'
-
-    for r_itr in range(RS_ITERATION):
-        print('OUTER_ITERATION: ' + str(itr))
-        print('Random search... itr: ' + str(r_itr))
-        new_parser = get_random_hyperparameters(out_path)
-        print(new_parser)
-
-        # get validation performance given the hyperparameters
-        tmp_max = get_main.get_valid_performance(DATA, MASK, new_parser, itr, EVAL_TIMES, MAX_VALUE=max_valid)
-
-        if tmp_max > max_valid:
-            max_valid = tmp_max
-            max_parser = new_parser
-            save_logging(max_parser,
-                         log_name)  # save the hyperparameters if this provides the maximum validation performance
-
-        print('Current best: ' + str(max_valid))
-        max_valid_list.append(max_valid)
-    print(np.max(max_valid))
-    print(np.std(max_valid_list))
 
 
+def run_experiment(data_mode):
 
+    if data_mode == 'SYNTHETIC':
+        (x_dim), (data, time, label), (mask1, mask2) = impt.import_dataset_SYNTHETIC(norm_mode='standard')
+        EVAL_TIMES = [12, 24, 36]
+    elif data_mode == 'METABRIC':
+        (x_dim), (data, time, label), (mask1, mask2) = impt.import_dataset_METABRIC(norm_mode='standard')
+        EVAL_TIMES = [144, 288, 432]
+    elif data_mode[0:3] == 'MZZ':
+        first_ = data_mode.find("_")
+        second_ = data_mode[first_+1:].find("_") + first_ +1
+        num_samples = data_mode[first_+1: second_]
+        num_features = data_mode[second_+1:]
+        (x_dim), (data, time, label), (mask1, mask2) = impt.import_mzz_SYNTHETIC(num_samples=num_samples, num_features = num_features, norm_mode='standard')
+        EVAL_TIMES = [50, 100, int(max(time))]
+    else:
+        print('ERROR:  DATA_MODE NOT FOUND !!!')
+
+    DATA = (data, time, label)
+    MASK = (mask1, mask2)  # masks are required to calculate loss functions without for-loops.
+
+    out_path = os.path.join('experiments', data_mode, 'results')
+    #out_path = data_mode + '/results/'
+    for itr in range(OUT_ITERATION):
+
+        if not os.path.exists(out_path + '/itr_' + str(itr) + '/'):
+            os.makedirs(out_path + '/itr_' + str(itr) + '/')
+
+        max_valid = 0.
+        max_valid_list = []
+        log_name = out_path + '/itr_' + str(itr) + '/hyperparameters_log.txt'
+
+        for r_itr in range(RS_ITERATION):
+            print('OUTER_ITERATION: ' + str(itr))
+            print('Random search... itr: ' + str(r_itr))
+            new_parser = get_random_hyperparameters(out_path)
+            print(new_parser)
+
+            # get validation performance given the hyper - parameters
+            tmp_max = get_main.get_valid_performance(DATA, MASK, new_parser, itr, EVAL_TIMES, MAX_VALUE=max_valid)
+            if tmp_max > max_valid:
+                max_valid = tmp_max
+                max_parser = new_parser
+                save_logging(max_parser, log_name)  # save the hyperparameters if this provides the maximum validation performance
+            print('Current best: ' + str(max_valid))
+            max_valid_list.append(max_valid)
+
+
+        result_fpath = os.path.join(out_path, 'itr_' + str(itr), 'performance.txt'  )
+        with open(result_fpath, 'w') as f:
+            f.write('Max:{}\n'.format( np.max(max_valid) ) )
+            f.write('Std:{}\n'.format( np.std(max_valid_list)))
+        print(np.max(max_valid))
+        print(np.std(max_valid_list))
+
+
+if __name__ == '__main__':
+
+    data_mode_list = ['MZZ_200_3', 'MZZ_200_5', 'MZZ_200_10',
+                      'MZZ_500_3', 'MZZ_500_5', 'MZZ_500_10',
+                      'MZZ_750_3', 'MZZ_750_5', 'MZZ_750_10',
+                      'MZZ_1000_3', 'MZZ_1000_5', 'MZZ_1000_10',
+                      'MZZ_2000_3', 'MZZ_2000_5', 'MZZ_2000_10',
+                      'MZZ_5000_3', 'MZZ_5000_5', 'MZZ_5000_10'
+                      ]
+
+    for data_mode in data_mode_list:
+        run_experiment(data_mode)

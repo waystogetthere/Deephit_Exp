@@ -102,7 +102,7 @@ def import_dataset_SYNTHETIC(norm_mode='standard'):
 def import_mzz_SYNTHETIC(num_samples, num_features, norm_mode='standard'):
     num_tr = int(num_samples) * 0.9
     num_val = int(num_samples) * 0.1
-    in_filename = './sample data/MZZ/'+ str(num_samples) + '(' + str(int(num_tr)) + "+" + str(int(num_val)) +")" + str(num_features) + ".csv"
+    in_filename = './sample_data/MZZ/'+ str(num_samples) + '(' + str(int(num_tr)) + "+" + str(int(num_val)) +")" + str(num_features) + ".csv"
 
     df = pd.read_csv(in_filename, sep=',')
 
